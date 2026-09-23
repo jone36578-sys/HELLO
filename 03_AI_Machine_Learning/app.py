@@ -1,12 +1,16 @@
 import os,secrets,logging
 from datetime import timedelta
 from flask import Flask,jsonify,render_template,request,session
+from flask_session import Session
 from config import *
 from google import genai
 from google.genai import types
 logging.basicConfig(level=logging.INFO)
 app=Flask(__name__)
-app.config.update(SECRET_KEY=os.getenv("FLASK_SECRET_KEY") or secrets.token_hex(32),SESSION_COOKIE_HTTPONLY=True,SESSION_COOKIE_SAMESITE="Lax",SESSION_COOKIE_SECURE=os.getenv("RENDER") == "true",PERMANENT_SESSION_LIFETIME=timedelta(minutes=SESSION_TIMEOUT_MINUTES),MAX_CONTENT_LENGTH=32*1024)
+SESSION_DIR=os.path.join(os.getenv("TMPDIR", "/tmp"), "domain_chatbot_sessions")
+os.makedirs(SESSION_DIR, exist_ok=True)
+app.config.update(SECRET_KEY=os.getenv("FLASK_SECRET_KEY") or secrets.token_hex(32),SESSION_TYPE="filesystem",SESSION_FILE_DIR=SESSION_DIR,SESSION_PERMANENT=True,SESSION_USE_SIGNER=True,SESSION_COOKIE_HTTPONLY=True,SESSION_COOKIE_SAMESITE="Lax",SESSION_COOKIE_SECURE=os.getenv("RENDER", "").lower()=="true",PERMANENT_SESSION_LIFETIME=timedelta(minutes=SESSION_TIMEOUT_MINUTES),MAX_CONTENT_LENGTH=32*1024)
+Session(app)
 def ensure():
     if "sid" not in session: session["sid"]=secrets.token_urlsafe(24)
     if "history" not in session: session["history"]=[]
